@@ -1,0 +1,2059 @@
+library(ggplot2)
+library(tidyr)
+library(psych)
+library(readr)
+library(haven)
+library(strengejacke)
+library(dplyr)
+library(stringr)
+library(tidyverse)
+library(lme4)
+library(lmerTest)
+library(lubridate)
+
+#import CLEAN/deID data sets
+
+baseline <- read_csv("~/data/baseline_PIDdeidentified.csv")
+endpoint <- read_csv("~/data/endpoint_PIDdeidentified.csv")
+log <- read_csv("~/data/log_PIDdeidentified.csv")
+
+ema_morning <- read_csv("~/data/EMA_Morning_PIDdeidentified.csv")
+ema_evening <- read_csv("~/data/EMA_Evening_PIDdeidentified.csv")
+
+training_other <- read_csv("~/data/training_other_PIDdeidentified.csv")
+training_self <- read_csv("~/data/training_self_PIDdeidentified.csv")
+training_control <- read_csv("~/data/training_control_PIDdeidentified.csv")
+training_no1 <- read_csv("~/data/Training_No1_PIDdeidentified.csv")
+training_no2 <- read_csv("~/data/Training_No2_PIDdeidentified.csv")
+
+# DATA PREPRATION
+
+# create composite scores for baseline/endpoint variables
+
+#PWB-18 - reverse 1, 2, 3, 8, 9, 11, 12, 13, 17, 18
+
+baseline <- mutate(baseline, pwb_1r= case_when(
+  pwb_1 == 1  ~ 7, 
+  pwb_1 == 2  ~ 6, 
+  pwb_1 == 3  ~ 5, 
+  pwb_1 == 4  ~ 4, 
+  pwb_1 == 5  ~ 3,
+  pwb_1 == 6  ~ 2,
+  pwb_1 == 7  ~ 1,
+))
+
+baseline <- mutate(baseline, pwb_2r= case_when(
+  pwb_2 == 1  ~ 7, 
+  pwb_2 == 2  ~ 6, 
+  pwb_2 == 3  ~ 5, 
+  pwb_2 == 4  ~ 4, 
+  pwb_2 == 5  ~ 3,
+  pwb_2 == 6  ~ 2,
+  pwb_2 == 7  ~ 1,
+))
+
+baseline <- mutate(baseline, pwb_3r= case_when(
+  pwb_3 == 1  ~ 7, 
+  pwb_3 == 2  ~ 6, 
+  pwb_3 == 3  ~ 5, 
+  pwb_3 == 4  ~ 4, 
+  pwb_3 == 5  ~ 3,
+  pwb_3 == 6  ~ 2,
+  pwb_3 == 7  ~ 1,
+))
+
+baseline <- mutate(baseline, pwb_8r= case_when(
+  pwb_8 == 1  ~ 7, 
+  pwb_8 == 2  ~ 6, 
+  pwb_8 == 3  ~ 5, 
+  pwb_8 == 4  ~ 4, 
+  pwb_8 == 5  ~ 3,
+  pwb_8 == 6  ~ 2,
+  pwb_8 == 7  ~ 1,
+))
+
+baseline <- mutate(baseline, pwb_9r= case_when(
+  pwb_9 == 1  ~ 7, 
+  pwb_9 == 2  ~ 6, 
+  pwb_9 == 3  ~ 5, 
+  pwb_9 == 4  ~ 4, 
+  pwb_9 == 5  ~ 3,
+  pwb_9 == 6  ~ 2,
+  pwb_9 == 7  ~ 1,
+))
+
+baseline <- mutate(baseline, pwb_11r= case_when(
+  pwb_11 == 1  ~ 7, 
+  pwb_11 == 2  ~ 6, 
+  pwb_11 == 3  ~ 5, 
+  pwb_11 == 4  ~ 4, 
+  pwb_11 == 5  ~ 3,
+  pwb_11 == 6  ~ 2,
+  pwb_11 == 7  ~ 1,
+))
+
+
+baseline <- mutate(baseline, pwb_12r= case_when(
+  pwb_12 == 1  ~ 7, 
+  pwb_12 == 2  ~ 6, 
+  pwb_12 == 3  ~ 5, 
+  pwb_12 == 4  ~ 4, 
+  pwb_12 == 5  ~ 3,
+  pwb_12 == 6  ~ 2,
+  pwb_12 == 7  ~ 1,
+))
+
+baseline <- mutate(baseline, pwb_13r= case_when(
+  pwb_13 == 1  ~ 7, 
+  pwb_13 == 2  ~ 6, 
+  pwb_13 == 3  ~ 5, 
+  pwb_13 == 4  ~ 4, 
+  pwb_13 == 5  ~ 3,
+  pwb_13 == 6  ~ 2,
+  pwb_13 == 7  ~ 1,
+))
+
+baseline <- mutate(baseline, pwb_17r= case_when(
+  pwb_17 == 1  ~ 7, 
+  pwb_17 == 2  ~ 6, 
+  pwb_17 == 3  ~ 5, 
+  pwb_17 == 4  ~ 4, 
+  pwb_17 == 5  ~ 3,
+  pwb_17 == 6  ~ 2,
+  pwb_17 == 7  ~ 1,
+))
+
+baseline <- mutate(baseline, pwb_18r= case_when(
+  pwb_18 == 1  ~ 7, 
+  pwb_18 == 2  ~ 6, 
+  pwb_18 == 3  ~ 5, 
+  pwb_18 == 4  ~ 4, 
+  pwb_18 == 5  ~ 3,
+  pwb_18 == 6  ~ 2,
+  pwb_18 == 7  ~ 1,
+))
+
+baseline$pwb.pre = rowMeans(baseline[,c("pwb_1r", "pwb_2r", "pwb_3r",
+                                        "pwb_4", "pwb_5", "pwb_6",
+                                        "pwb_7", "pwb_8r", "pwb_9r",
+                                        "pwb_10", "pwb_11r", "pwb_12r",
+                                        "pwb_13r", "pwb_14", "pwb_15",
+                                        "pwb_16", "pwb_17r", "pwb_18r")] %>%
+                              mutate_all(as.numeric), na.rm = TRUE)
+
+#CESD
+
+baseline <- mutate(baseline, cesd_5r= case_when(
+  cesd_5 == 1  ~ 4, 
+  cesd_5 == 2  ~ 3, 
+  cesd_5 == 3  ~ 2, 
+  cesd_5 == 4  ~ 1,
+))
+
+baseline <- mutate(baseline, cesd_8r= case_when(
+  cesd_8 == 1  ~ 4, 
+  cesd_8 == 2  ~ 3, 
+  cesd_8 == 3  ~ 2, 
+  cesd_8 == 4  ~ 1,
+))
+
+baseline$cesd.pre = rowMeans(baseline[,c("cesd_1", "cesd_2","cesd_3", "cesd_4",
+                                         "cesd_5r", "cesd_6", "cesd_7", "cesd_8r",
+                                         "cesd_9", "cesd_10")] %>%
+                               mutate_all(as.numeric), na.rm = TRUE)
+
+#STAI - reverse 1, 2, 5, 8, 11, 15, 16, 19, 20
+
+baseline <- mutate(baseline, stai_1r= case_when(
+  stai_1 == 1  ~ 4, 
+  stai_1 == 2  ~ 3, 
+  stai_1 == 3  ~ 2, 
+  stai_1 == 4  ~ 1,
+))
+
+baseline <- mutate(baseline, stai_2r= case_when(
+  stai_2 == 1  ~ 4, 
+  stai_2 == 2  ~ 3, 
+  stai_2 == 3  ~ 2, 
+  stai_2 == 4  ~ 1,
+))
+
+baseline <- mutate(baseline, stai_5r= case_when(
+  stai_5 == 1  ~ 4, 
+  stai_5 == 2  ~ 3, 
+  stai_5 == 3  ~ 2, 
+  stai_5 == 4  ~ 1,
+))
+
+
+baseline <- mutate(baseline, stai_8r= case_when(
+  stai_8 == 1  ~ 4, 
+  stai_8 == 2  ~ 3, 
+  stai_8 == 3  ~ 2, 
+  stai_8 == 4  ~ 1,
+))
+
+baseline <- mutate(baseline, stai_11r= case_when(
+  stai_11 == 1  ~ 4, 
+  stai_11 == 2  ~ 3, 
+  stai_11 == 3  ~ 2, 
+  stai_11 == 4  ~ 1,
+))
+
+baseline <- mutate(baseline, stai_15r= case_when(
+  stai_15 == 1  ~ 4, 
+  stai_15 == 2  ~ 3, 
+  stai_15 == 3  ~ 2, 
+  stai_15 == 4  ~ 1,
+))
+
+baseline <- mutate(baseline, stai_16r= case_when(
+  stai_16 == 1  ~ 4, 
+  stai_16 == 2  ~ 3, 
+  stai_16 == 3  ~ 2, 
+  stai_16 == 4  ~ 1,
+))
+
+baseline <- mutate(baseline, stai_19r= case_when(
+  stai_19 == 1  ~ 4, 
+  stai_19 == 2  ~ 3, 
+  stai_19 == 3  ~ 2, 
+  stai_19 == 4  ~ 1,
+))
+
+baseline <- mutate(baseline, stai_20r= case_when(
+  stai_20 == 1  ~ 4, 
+  stai_20 == 2  ~ 3, 
+  stai_20 == 3  ~ 2, 
+  stai_20 == 4  ~ 1,
+))
+
+baseline$stai.pre = rowMeans(baseline[,c("stai_1r", "stai_2r","stai_3", "stai_4",
+                                         "stai_5r", "stai_6", "stai_7", "stai_8r",
+                                         "stai_9", "stai_10", "stai_11r", "stai_12",
+                                         "stai_13", "stai_14", "stai_15r", "stai_16r",
+                                         "stai_17", "stai_18", "stai_19r", "stai_20r")]%>%
+                               mutate_all(as.numeric), na.rm = TRUE)
+
+#PSS
+
+baseline <- mutate(baseline, pss_2r= case_when(
+  pss_2 == 1  ~ 5, 
+  pss_2 == 2  ~ 4, 
+  pss_2 == 3  ~ 3, 
+  pss_2 == 4  ~ 2,
+  pss_2 == 5  ~ 1,
+))
+
+baseline <- mutate(baseline, pss_3r= case_when(
+  pss_3 == 1  ~ 5, 
+  pss_3 == 2  ~ 4, 
+  pss_3 == 3  ~ 3, 
+  pss_3 == 4  ~ 2,
+  pss_3 == 5  ~ 1,
+))
+
+baseline$pss.pre = rowMeans(baseline[,c("pss_1", "pss_2r","pss_3r", "pss_4")]%>%
+                              mutate_all(as.numeric), na.rm = TRUE)
+
+#social support
+
+baseline$support.pre = rowMeans(baseline[,c("esupport_1", "esupport_2", "esupport_3",
+                                            "esupport_4", "esupport_5", "esupport_7",
+                                            "esupport_8", "esupport_9", "esupport_10",
+                                            "esupport_11", "esupport_12",
+                                            "isupport_1", "isupport_2", "isupport_3", "isupport_4",
+                                            "isupport_5", "isupport_6", "isupport_7", "isupport_8", "isupport_9")]%>%
+                                  mutate_all(as.numeric), na.rm = TRUE)
+
+#MDES
+
+baseline$mdes_pos.pre = rowMeans(baseline[,c("mdes_1", "mdes_4","mdes_8", "mdes_11",
+                                             "mdes_12", "mdes_13", "mdes_14", "mdes_15",
+                                             "mdes_16", "mdes_19")]%>%
+                                   mutate_all(as.numeric), na.rm = TRUE)
+
+baseline$mdes_neg.pre = rowMeans(baseline[,c("mdes_2", "mdes_3","mdes_5", "mdes_6",
+                                             "mdes_7", "mdes_9", "mdes_10", "mdes_17",
+                                             "mdes_18", "mdes_20")]%>%
+                                   mutate_all(as.numeric), na.rm = TRUE)
+
+
+#repeat code for endpoint
+#PWB-18 - reverse 1, 2, 3, 8, 9, 11, 12, 13, 17, 18
+
+endpoint <- mutate(endpoint, pwb_1r= case_when(
+  pwb_1 == 1  ~ 7, 
+  pwb_1 == 2  ~ 6, 
+  pwb_1 == 3  ~ 5, 
+  pwb_1 == 4  ~ 4, 
+  pwb_1 == 5  ~ 3,
+  pwb_1 == 6  ~ 2,
+  pwb_1 == 7  ~ 1,
+))
+
+endpoint <- mutate(endpoint, pwb_2r= case_when(
+  pwb_2 == 1  ~ 7, 
+  pwb_2 == 2  ~ 6, 
+  pwb_2 == 3  ~ 5, 
+  pwb_2 == 4  ~ 4, 
+  pwb_2 == 5  ~ 3,
+  pwb_2 == 6  ~ 2,
+  pwb_2 == 7  ~ 1,
+))
+
+endpoint <- mutate(endpoint, pwb_3r= case_when(
+  pwb_3 == 1  ~ 7, 
+  pwb_3 == 2  ~ 6, 
+  pwb_3 == 3  ~ 5, 
+  pwb_3 == 4  ~ 4, 
+  pwb_3 == 5  ~ 3,
+  pwb_3 == 6  ~ 2,
+  pwb_3 == 7  ~ 1,
+))
+
+endpoint <- mutate(endpoint, pwb_8r= case_when(
+  pwb_8 == 1  ~ 7, 
+  pwb_8 == 2  ~ 6, 
+  pwb_8 == 3  ~ 5, 
+  pwb_8 == 4  ~ 4, 
+  pwb_8 == 5  ~ 3,
+  pwb_8 == 6  ~ 2,
+  pwb_8 == 7  ~ 1,
+))
+
+endpoint <- mutate(endpoint, pwb_9r= case_when(
+  pwb_9 == 1  ~ 7, 
+  pwb_9 == 2  ~ 6, 
+  pwb_9 == 3  ~ 5, 
+  pwb_9 == 4  ~ 4, 
+  pwb_9 == 5  ~ 3,
+  pwb_9 == 6  ~ 2,
+  pwb_9 == 7  ~ 1,
+))
+
+endpoint <- mutate(endpoint, pwb_11r= case_when(
+  pwb_11 == 1  ~ 7, 
+  pwb_11 == 2  ~ 6, 
+  pwb_11 == 3  ~ 5, 
+  pwb_11 == 4  ~ 4, 
+  pwb_11 == 5  ~ 3,
+  pwb_11 == 6  ~ 2,
+  pwb_11 == 7  ~ 1,
+))
+
+
+endpoint <- mutate(endpoint, pwb_12r= case_when(
+  pwb_12 == 1  ~ 7, 
+  pwb_12 == 2  ~ 6, 
+  pwb_12 == 3  ~ 5, 
+  pwb_12 == 4  ~ 4, 
+  pwb_12 == 5  ~ 3,
+  pwb_12 == 6  ~ 2,
+  pwb_12 == 7  ~ 1,
+))
+
+endpoint <- mutate(endpoint, pwb_13r= case_when(
+  pwb_13 == 1  ~ 7, 
+  pwb_13 == 2  ~ 6, 
+  pwb_13 == 3  ~ 5, 
+  pwb_13 == 4  ~ 4, 
+  pwb_13 == 5  ~ 3,
+  pwb_13 == 6  ~ 2,
+  pwb_13 == 7  ~ 1,
+))
+
+endpoint <- mutate(endpoint, pwb_17r= case_when(
+  pwb_17 == 1  ~ 7, 
+  pwb_17 == 2  ~ 6, 
+  pwb_17 == 3  ~ 5, 
+  pwb_17 == 4  ~ 4, 
+  pwb_17 == 5  ~ 3,
+  pwb_17 == 6  ~ 2,
+  pwb_17 == 7  ~ 1,
+))
+
+endpoint <- mutate(endpoint, pwb_18r= case_when(
+  pwb_18 == 1  ~ 7, 
+  pwb_18 == 2  ~ 6, 
+  pwb_18 == 3  ~ 5, 
+  pwb_18 == 4  ~ 4, 
+  pwb_18 == 5  ~ 3,
+  pwb_18 == 6  ~ 2,
+  pwb_18 == 7  ~ 1,
+))
+
+endpoint$pwb.post = rowMeans(endpoint[,c("pwb_1r", "pwb_2r", "pwb_3r",
+                                         "pwb_4", "pwb_5", "pwb_6",
+                                         "pwb_7", "pwb_8r", "pwb_9r",
+                                         "pwb_10", "pwb_11r", "pwb_12r",
+                                         "pwb_13r", "pwb_14", "pwb_15",
+                                         "pwb_16", "pwb_17r", "pwb_18r")] %>%
+                               mutate_all(as.numeric), na.rm = TRUE)
+
+#CESD
+
+endpoint <- mutate(endpoint, cesd_5r= case_when(
+  cesd_5 == 1  ~ 4, 
+  cesd_5 == 2  ~ 3, 
+  cesd_5 == 3  ~ 2, 
+  cesd_5 == 4  ~ 1,
+))
+
+endpoint <- mutate(endpoint, cesd_8r= case_when(
+  cesd_8 == 1  ~ 4, 
+  cesd_8 == 2  ~ 3, 
+  cesd_8 == 3  ~ 2, 
+  cesd_8 == 4  ~ 1,
+))
+
+endpoint$cesd.post = rowMeans(endpoint[,c("cesd_1", "cesd_2","cesd_3", "cesd_4",
+                                          "cesd_5r", "cesd_6", "cesd_7", "cesd_8r",
+                                          "cesd_9", "cesd_10")] %>%
+                                mutate_all(as.numeric), na.rm = TRUE)
+
+#STAI - reverse 1, 2, 5, 8, 11, 15, 16, 19, 20
+
+endpoint <- mutate(endpoint, stai_1r= case_when(
+  stai_1 == 1  ~ 4, 
+  stai_1 == 2  ~ 3, 
+  stai_1 == 3  ~ 2, 
+  stai_1 == 4  ~ 1,
+))
+
+endpoint <- mutate(endpoint, stai_2r= case_when(
+  stai_2 == 1  ~ 4, 
+  stai_2 == 2  ~ 3, 
+  stai_2 == 3  ~ 2, 
+  stai_2 == 4  ~ 1,
+))
+
+endpoint <- mutate(endpoint, stai_5r= case_when(
+  stai_5 == 1  ~ 4, 
+  stai_5 == 2  ~ 3, 
+  stai_5 == 3  ~ 2, 
+  stai_5 == 4  ~ 1,
+))
+
+
+endpoint <- mutate(endpoint, stai_8r= case_when(
+  stai_8 == 1  ~ 4, 
+  stai_8 == 2  ~ 3, 
+  stai_8 == 3  ~ 2, 
+  stai_8 == 4  ~ 1,
+))
+
+endpoint <- mutate(endpoint, stai_11r= case_when(
+  stai_11 == 1  ~ 4, 
+  stai_11 == 2  ~ 3, 
+  stai_11 == 3  ~ 2, 
+  stai_11 == 4  ~ 1,
+))
+
+endpoint <- mutate(endpoint, stai_15r= case_when(
+  stai_15 == 1  ~ 4, 
+  stai_15 == 2  ~ 3, 
+  stai_15 == 3  ~ 2, 
+  stai_15 == 4  ~ 1,
+))
+
+endpoint <- mutate(endpoint, stai_16r= case_when(
+  stai_16 == 1  ~ 4, 
+  stai_16 == 2  ~ 3, 
+  stai_16 == 3  ~ 2, 
+  stai_16 == 4  ~ 1,
+))
+
+endpoint <- mutate(endpoint, stai_19r= case_when(
+  stai_19 == 1  ~ 4, 
+  stai_19 == 2  ~ 3, 
+  stai_19 == 3  ~ 2, 
+  stai_19 == 4  ~ 1,
+))
+
+endpoint <- mutate(endpoint, stai_20r= case_when(
+  stai_20 == 1  ~ 4, 
+  stai_20 == 2  ~ 3, 
+  stai_20 == 3  ~ 2, 
+  stai_20 == 4  ~ 1,
+))
+
+
+endpoint$stai.post = rowMeans(endpoint[,c("stai_1r", "stai_2r","stai_3", "stai_4",
+                                          "stai_5r", "stai_6", "stai_7", "stai_8r",
+                                          "stai_9", "stai_10", "stai_11r", "stai_12",
+                                          "stai_13", "stai_14", "stai_15r", "stai_16r",
+                                          "stai_17", "stai_18", "stai_19r", "stai_20r")]%>%
+                                mutate_all(as.numeric), na.rm = TRUE)
+
+
+#PSS
+
+endpoint <- mutate(endpoint, pss_2r= case_when(
+  pss_2 == 1  ~ 5, 
+  pss_2 == 2  ~ 4, 
+  pss_2 == 3  ~ 3, 
+  pss_2 == 4  ~ 2,
+  pss_2 == 5  ~ 1,
+))
+
+endpoint <- mutate(endpoint, pss_3r= case_when(
+  pss_3 == 1  ~ 5, 
+  pss_3 == 2  ~ 4, 
+  pss_3 == 3  ~ 3, 
+  pss_3 == 4  ~ 2,
+  pss_3 == 5  ~ 1,
+))
+
+endpoint$pss.post = rowMeans(endpoint[,c("pss_1", "pss_2r","pss_3r", "pss_4")]%>%
+                               mutate_all(as.numeric), na.rm = TRUE)
+
+#support
+
+endpoint$support.post = rowMeans(endpoint[,c("esupport_1", "esupport_2", "esupport_3",
+                                             "esupport_4", "esupport_5", "esupport_7",
+                                             "esupport_8", "esupport_9", "esupport_10",
+                                             "esupport_11", "esupport_12",
+                                             "isupport_1", "isupport_2", "isupport_3", "isupport_4",
+                                             "isupport_5", "isupport_6", "isupport_7", "isupport_8", "isupport_9")]%>%
+                                   mutate_all(as.numeric), na.rm = TRUE)
+
+#MDES
+
+endpoint$mdes_pos.post = rowMeans(endpoint[,c("mdes_1", "mdes_4","mdes_8", "mdes_11",
+                                              "mdes_12", "mdes_13", "mdes_14", "mdes_15",
+                                              "mdes_16", "mdes_19")]%>%
+                                    mutate_all(as.numeric), na.rm = TRUE)
+
+endpoint$mdes_neg.post = rowMeans(endpoint[,c("mdes_2", "mdes_3","mdes_5", "mdes_6",
+                                              "mdes_7", "mdes_9", "mdes_10", "mdes_17",
+                                              "mdes_18", "mdes_20")]%>%
+                                    mutate_all(as.numeric), na.rm = TRUE)
+
+#EMA - assign variable names
+
+#adding day variable from time stamp
+ema_morning$`Start Time` <- as.POSIXct(ema_morning$`Start Time`, format = "%Y-%m-%d %H:%M:%S")
+start_date <- as.Date(min(ema_morning$`Start Time`, na.rm = TRUE))
+ema_morning$day <- as.numeric(as.Date(ema_morning$`Start Time`) - start_date) + 1
+
+ema_evening$`Start Time` <- as.POSIXct(ema_evening$`Start Time`, format = "%Y-%m-%d %H:%M:%S")
+start_date <- as.Date(min(ema_evening$`Start Time`, na.rm = TRUE))
+ema_evening$day <- as.numeric(as.Date(ema_evening$`Start Time`) - start_date) + 1
+
+##sleep (only morning)
+ema_morning <- ema_morning %>%
+  rename(sleep.quality = `How would you rate your quality of sleep last night?`)
+ema_morning <- ema_morning %>%
+  rename(sleep.duration = `How many hours and minutes of sleep did you get last night? This may be different from the number of hours spent in bed.`)
+ema_morning <- ema_morning %>%
+  rename(sleep.efficiency = `How long did you spend awake at night? This includes the time it took to fall asleep and awakenings from sleep.`)
+
+##sleep.duration / sleep.efficiency convert into minutes
+
+ema_morning <- ema_morning %>%
+  mutate(sleep.duration_minutes = as.numeric(hms(sleep.duration)) / 60)
+
+ema_morning <- ema_morning %>%
+  mutate(sleep.efficiency_minutes = as.numeric(hms(sleep.efficiency)) / 60)
+
+##mood
+ema_morning <- ema_morning %>%
+  rename(mood_positive = `How POSITIVE do you feel right now?`)
+ema_morning <- ema_morning %>%
+  rename(mood_negative = `How NEGATIVE do you feel right now?`)
+ema_morning <- ema_morning %>%
+  rename(mood_angry = `Right now I feel ANGRY.`)
+ema_morning <- ema_morning %>%
+  rename(mood_anxious = `Right now I feel ANXIOUS.`)
+ema_morning <- ema_morning %>%
+  rename(mood_happy = `Right now I feel HAPPY.`)
+ema_morning <- ema_morning %>%
+  rename(mood_lonely = `Right now I feel LONELY.`)
+ema_morning <- ema_morning %>%
+  rename(mood_peaceful = `Right now I feel PEACEFUL.`)
+ema_morning <- ema_morning %>%
+  rename(mood_sad = `Right now I feel SAD.`)
+ema_morning <- ema_morning %>%
+  rename(mood_well = `Right now I feel WELL.`)
+ema_evening <- ema_evening %>%
+  rename(mood_positive = `How POSITIVE do you feel right now?`)
+ema_evening <- ema_evening %>%
+  rename(mood_negative = `How NEGATIVE do you feel right now?`)
+ema_evening <- ema_evening %>%
+  rename(mood_angry = `Right now I feel ANGRY.`)
+ema_evening <- ema_evening %>%
+  rename(mood_anxious = `Right now I feel ANXIOUS.`)
+ema_evening <- ema_evening %>%
+  rename(mood_happy = `Right now I feel HAPPY.`)
+ema_evening <- ema_evening %>%
+  rename(mood_lonely = `Right now I feel LONELY.`)
+ema_evening <- ema_evening %>%
+  rename(mood_peaceful = `Right now I feel PEACEFUL.`)
+ema_evening <- ema_evening %>%
+  rename(mood_sad = `Right now I feel SAD.`)
+ema_evening <- ema_evening %>%
+  rename(mood_well = `Right now I feel WELL.`)
+
+##stress
+ema_morning <- ema_morning %>%
+  rename(stress1 = `Right now, I feel like difficulties are piling up so high I cannot overcome them.`)
+ema_morning <- ema_morning %>%
+  rename(stress2 = `Right now, I feel stressed.`)
+ema_evening <- ema_evening %>%
+  rename(stress1 = `Right now I feel like difficulties are piling up so high I cannot overcome them.`)
+ema_evening <- ema_evening %>%
+  rename(stress2 = `Right now I feel stressed.`)
+
+#composite scores
+ema_morning$morning.stress = rowMeans(ema_morning[,c("stress1", "stress2")] %>%
+                                        mutate_all(as.numeric), na.rm = TRUE)
+ema_evening$evening.stress = rowMeans(ema_evening[,c("stress1", "stress2")] %>%
+                                        mutate_all(as.numeric), na.rm = TRUE)
+ema_morning$morning.positive = rowMeans(ema_morning[,c("mood_positive", "mood_happy", "mood_peaceful", "mood_well")] %>%
+                                          mutate_all(as.numeric), na.rm = TRUE)
+ema_evening$evening.positive = rowMeans(ema_evening[,c("mood_positive", "mood_happy", "mood_peaceful", "mood_well")] %>%
+                                          mutate_all(as.numeric), na.rm = TRUE)
+ema_morning$morning.negative = rowMeans(ema_morning[,c("mood_negative", "mood_sad", "mood_anxious", "mood_angry", "mood_lonely")] %>%
+                                          mutate_all(as.numeric), na.rm = TRUE)
+ema_evening$evening.negative = rowMeans(ema_evening[,c("mood_negative", "mood_sad", "mood_anxious", "mood_angry", "mood_lonely")] %>%
+                                          mutate_all(as.numeric), na.rm = TRUE)
+
+# create data frame
+
+#merge
+df <- baseline %>%
+  left_join(log, by = "PROLIFIC_PID") %>%
+  left_join(endpoint, by = "PROLIFIC_PID")
+
+#remove all participants without assigned group condition
+##group assignment data from 'log'
+##excess participants who were screened at baseline OR recruited but did not download app
+frq(df$`Package ID`) #143 NAs
+
+df <- df %>%
+  filter(!is.na(`Package ID`))
+
+df %>% count(PROLIFIC_PID)  #confirm 390 participants assigned to conditions
+
+#create groupings for comparison
+
+##4 conditions
+df <- df %>%
+  rename(condition = `Package ID`)
+df <- df %>%
+  mutate(condition = recode(condition,
+                            "A100" = "Other Compassion",
+                            "B100" = "Self Compassion",
+                            "C100" = "Active Control",
+                            "D100" = "No-Intervention"))
+
+df %>% count(condition)
+#Active Control 97
+#No-Intervention 97
+#Other compassion 99
+#Self Compassion 97
+
+df$condition <- factor(df$condition)
+df$condition <- relevel(df$condition, ref='No-Intervention')
+
+#keep EMA data separate from df for now
+ema_morning <- ema_morning %>%  rename(condition = `PackageID`)
+ema_evening <- ema_evening %>%  rename(condition = `PackageID`)
+
+ema_morning <- ema_morning %>%
+  mutate(condition = recode(condition,
+                            "A100" = "Other Compassion",
+                            "B100" = "Self Compassion",
+                            "C100" = "Active Control",
+                            "D100" = "No-Intervention"))
+ema_evening <- ema_evening %>%
+  mutate(condition = recode(condition,
+                            "A100" = "Other Compassion",
+                            "B100" = "Self Compassion",
+                            "C100" = "Active Control",
+                            "D100" = "No-Intervention"))
+
+ema_morning$condition <- as.factor(ema_morning$condition)
+ema_evening$condition <- as.factor(ema_evening$condition)
+
+ema_morning$condition <- relevel(ema_morning$condition, ref='No-Intervention')
+ema_evening$condition <- relevel(ema_evening$condition, ref='No-Intervention')
+
+################
+#   METHODS-   #
+# PARTICIPANTS #
+################
+
+
+frq(df$age)
+#(mean [SD] age, 37.21 [13.02] years; range, 18–77 years)
+summary(df$age)
+#median 35.00
+
+df <- df %>%
+  mutate(gender = case_when(
+    gender == "1" ~ "Man",
+    gender == "2" ~ "Woman",
+    gender %in% c("3", "4") ~ "Other/Declined"))
+
+frq(df$gender)
+#148 men, 233 women, 8 other, 1 declined
+df$gender <- factor(df$gender)
+df$gender <- relevel(df$gender, ref='Other/Declined')
+
+#Racial and ethnic self-identification
+
+frq(df$race)
+
+df <- df %>%
+  mutate(
+    race_chr = as.character(race),
+    white = if_else(!is.na(race_chr) & str_detect(race_chr, "1"), 1L, 0L)
+  )
+table(df$white, useNA = "ifany")
+df$white <- factor(df$white)
+
+df <- df %>%
+  mutate(
+    race_chr = as.character(race),
+    black = if_else(!is.na(race_chr) & str_detect(race_chr, "2"), 1L, 0L)
+  )
+table(df$black, useNA = "ifany")
+df$black <- factor(df$black)
+
+df <- df %>%
+  mutate(
+    race_chr = as.character(race),
+    native = if_else(!is.na(race_chr) & str_detect(race_chr, "3"), 1L, 0L)
+  )
+table(df$native, useNA = "ifany")
+df$native <- factor(df$native)
+
+df <- df %>%
+  mutate(
+    race_chr = as.character(race),
+    asian = if_else(!is.na(race_chr) & str_detect(race_chr, "4"), 1L, 0L)
+  )
+table(df$asian, useNA = "ifany")
+df$asian <- factor(df$asian)
+
+df <- df %>%
+  mutate(
+    race_chr = as.character(race),
+    pacific = if_else(!is.na(race_chr) & str_detect(race_chr, "5"), 1L, 0L)
+  )
+table(df$pacific, useNA = "ifany")
+df$pacific <- factor(df$pacific)
+
+df <- df %>%
+  mutate(
+    race_chr = as.character(race),
+    latin = if_else(!is.na(race_chr) & str_detect(race_chr, "6"), 1L, 0L)
+  )
+table(df$latin, useNA = "ifany")
+df$latin <- factor(df$latin)
+
+df <- df %>%
+  mutate(
+    race_chr = as.character(race),
+    other = if_else(!is.na(race_chr) & str_detect(race_chr, "7"), 1L, 0L)
+  )
+table(df$other, useNA = "ifany")
+df$other <- factor(df$other)
+
+##############################################
+#   Table 1-                                 #
+# Demographic Characteristics by Condition   #
+##############################################
+
+
+#age
+
+df %>%
+  group_by(condition) %>%
+  summarise(
+    n = n(),
+    mean_age = formatC(mean(age, na.rm = TRUE), format = "f", digits = 3),
+    sd_age   = formatC(sd(age, na.rm = TRUE), format = "f", digits = 3)
+  )
+
+#gender
+
+df %>%
+  count(condition, gender) %>%
+  group_by(condition) %>%
+  mutate(pct = round(100 * n / sum(n), 3))
+
+#race/ethnicity
+frq(df$white)
+df %>%
+  count(condition, white) %>%
+  group_by(condition) %>%
+  mutate(pct = 100 * n / sum(n))
+
+frq(df$latin)
+df %>%
+  count(condition, latin) %>%
+  group_by(condition) %>%
+  mutate(pct = 100 * n / sum(n))
+
+frq(df$asian)
+df %>%
+  count(condition, asian) %>%
+  group_by(condition) %>%
+  mutate(pct = 100 * n / sum(n))
+
+frq(df$black)
+df %>%
+  count(condition, black) %>%
+  group_by(condition) %>%
+  mutate(pct = 100 * n / sum(n))
+
+df <- df %>%
+  mutate(other_combined = ifelse(native == 1 | pacific == 1 | other == 1, 1, 0))
+
+frq(df$other_combined)
+
+df %>%
+  count(condition, other_combined) %>%
+  group_by(condition) %>%
+  mutate(pct = 100 * n / sum(n))
+
+# education
+
+df <- df %>%
+  mutate(education.years = recode(edu,
+                                  '1' = 11,
+                                  '2' = 12,
+                                  '3' = 13,
+                                  '4' = 14,
+                                  '5' = 16,
+                                  '6' = 18,
+                                  '7' = 20
+  ))
+
+frq(df$education.years)
+
+df %>%
+  group_by(condition) %>%
+  summarise(
+    n = n(),
+    mean_edu = mean(education.years, na.rm = TRUE),
+    sd_edu   = sd(education.years, na.rm = TRUE)
+  )
+
+#relationship status
+df <- df %>%
+  mutate(relationship = recode(relationship,
+                               "1" = "Single",
+                               "2" = "Open",
+                               "3" = "Committed",
+                               "4" = "Complicated"))
+frq(df$relationship)
+df$relationship <- factor(df$relationship)
+df$relationship <- relevel(df$relationship, ref='Open')
+
+df %>%
+  count(condition, relationship) %>%
+  group_by(condition) %>%
+  mutate(pct = 100 * n / sum(n))
+
+#income
+
+df <- df %>%
+  mutate(income = recode(income,
+                         "1" = "$0 to $9,999",
+                         "2" = "$10,000 to $14,999",
+                         "3" = "$15,000 to $19,999",
+                         "4" = "$20,000 to $34,999",
+                         "5" = "$35,000 to $49,999",
+                         "6" = "$50,000 to $74,999",
+                         "7" = "$75,000 to $99,999",
+                         "8" = "$100,000 to $199,999",
+                         "9" = "$200,000 or more"
+  ))
+
+frq(df$income)
+
+df %>%
+  count(condition, income) %>%
+  group_by(condition) %>%
+  mutate(pct = 100 * n / sum(n)) %>%
+  print(n = Inf)
+
+#political ideology
+
+frq(df$political)
+
+df %>%
+  group_by(condition) %>%
+  summarise(
+    n = n(),
+    mean_ideo = mean(political, na.rm = TRUE),
+    sd_ideo  = sd(political, na.rm = TRUE)
+  )
+
+#partyID
+df <- df %>%
+  mutate(partyID = case_when(
+    partyID == "1" ~ "Democrat",
+    partyID == "2" ~ "Republican",
+    partyID == "3" ~ "Independent",
+    partyID %in% c("4", "5") ~ "None/Other"))
+
+frq(df$partyID)
+df$partyID <- factor(df$partyID)
+df$partyID <- relevel(df$partyID, ref='None/Other')
+
+df %>%
+  count(condition, partyID) %>%
+  group_by(condition) %>%
+  mutate(pct = 100 * n / sum(n))
+
+# days to complete endpoint
+
+df$EndDate.y <- as.POSIXct(df$EndDate.y, format = "%m/%d/%Y %H:%M", tz = "UTC")
+reference_date <- as.POSIXct("2025-03-31 00:00", format = "%Y-%m-%d %H:%M", tz = "UTC")
+
+df$complete.endpoint.days <- as.numeric(difftime(df$EndDate.y, reference_date, units = "days"))
+
+frq(df$complete.endpoint.days)
+
+df %>%
+  summarize(
+    median_days = median(complete.endpoint.days, na.rm = TRUE),
+    iqr_low = quantile(complete.endpoint.days, 0.25, na.rm = TRUE),
+    iqr_high = quantile(complete.endpoint.days, 0.75, na.rm = TRUE),
+    mean_days = mean(complete.endpoint.days, na.rm = TRUE),
+    sd_days = sd(complete.endpoint.days, na.rm = TRUE),
+    min_days = min(complete.endpoint.days, na.rm = TRUE),
+    max_days = max(complete.endpoint.days, na.rm = TRUE)
+  )
+
+################
+#   METHODS-   #
+#    MEASURES  #
+################
+
+baseline_pwb <- baseline[ , c("pwb_1r", "pwb_2r", "pwb_3r",
+                              "pwb_4", "pwb_5", "pwb_6",
+                              "pwb_7", "pwb_8r", "pwb_9r",
+                              "pwb_10", "pwb_11r", "pwb_12r",
+                              "pwb_13r", "pwb_14", "pwb_15",
+                              "pwb_16", "pwb_17r", "pwb_18r")]    
+alpha(baseline_pwb)
+
+endpoint_pwb <- endpoint[ , c("pwb_1r", "pwb_2r", "pwb_3r",
+                              "pwb_4", "pwb_5", "pwb_6",
+                              "pwb_7", "pwb_8r", "pwb_9r",
+                              "pwb_10", "pwb_11r", "pwb_12r",
+                              "pwb_13r", "pwb_14", "pwb_15",
+                              "pwb_16", "pwb_17r", "pwb_18r")]    
+alpha(endpoint_pwb)
+
+baseline_cesd <- baseline[ , c("cesd_1", "cesd_2","cesd_3", "cesd_4",
+                               "cesd_5r", "cesd_6", "cesd_7", "cesd_8r",
+                               "cesd_9", "cesd_10")]    
+alpha(baseline_cesd)
+
+endpoint_cesd <- endpoint[ , c("cesd_1", "cesd_2","cesd_3", "cesd_4",
+                               "cesd_5r", "cesd_6", "cesd_7", "cesd_8r",
+                               "cesd_9", "cesd_10")]    
+alpha(endpoint_cesd)
+
+baseline_stai <- baseline[ , c("stai_1r", "stai_2r","stai_3", "stai_4",
+                               "stai_5r", "stai_6", "stai_7", "stai_8r",
+                               "stai_9", "stai_10", "stai_11r", "stai_12",
+                               "stai_13", "stai_14", "stai_15r", "stai_16r",
+                               "stai_17", "stai_18", "stai_19r", "stai_20r")]    
+alpha(baseline_stai)
+
+endpoint_stai <- endpoint[ , c("stai_1r", "stai_2r","stai_3", "stai_4",
+                               "stai_5r", "stai_6", "stai_7", "stai_8r",
+                               "stai_9", "stai_10", "stai_11r", "stai_12",
+                               "stai_13", "stai_14", "stai_15r", "stai_16r",
+                               "stai_17", "stai_18", "stai_19r", "stai_20r")]    
+alpha(endpoint_stai)
+
+baseline_mdes_pos <- baseline[ , c("mdes_1", "mdes_4","mdes_8", "mdes_11",
+                                   "mdes_12", "mdes_13", "mdes_14", "mdes_15",
+                                   "mdes_16", "mdes_19")]    
+alpha(baseline_mdes_pos)
+
+endpoint_mdes_pos <- endpoint[ , c("mdes_1", "mdes_4","mdes_8", "mdes_11",
+                                   "mdes_12", "mdes_13", "mdes_14", "mdes_15",
+                                   "mdes_16", "mdes_19")]    
+alpha(endpoint_mdes_pos)
+
+
+baseline_mdes_neg <- baseline[ , c("mdes_2", "mdes_3","mdes_5", "mdes_6",
+                                   "mdes_7", "mdes_9", "mdes_10", "mdes_17",
+                                   "mdes_18", "mdes_20")]
+alpha(baseline_mdes_neg)
+
+endpoint_mdes_neg <- endpoint[ , c("mdes_2", "mdes_3","mdes_5", "mdes_6",
+                                   "mdes_7", "mdes_9", "mdes_10", "mdes_17",
+                                   "mdes_18", "mdes_20")]
+alpha(endpoint_mdes_neg)
+
+baseline_support <- baseline[ , c("esupport_1", "esupport_2", "esupport_3",
+                                  "esupport_4", "esupport_5", "esupport_7",
+                                  "esupport_8", "esupport_9", "esupport_10",
+                                  "esupport_11", "esupport_12",
+                                  "isupport_1", "isupport_2", "isupport_3", "isupport_4",
+                                  "isupport_5", "isupport_6", "isupport_7", "isupport_8", "isupport_9")]
+alpha(baseline_support)
+
+endpoint_support <- endpoint[ , c("esupport_1", "esupport_2", "esupport_3",
+                                  "esupport_4", "esupport_5", "esupport_7",
+                                  "esupport_8", "esupport_9", "esupport_10",
+                                  "esupport_11", "esupport_12",
+                                  "isupport_1", "isupport_2", "isupport_3", "isupport_4",
+                                  "isupport_5", "isupport_6", "isupport_7", "isupport_8", "isupport_9")]
+alpha(endpoint_support)
+
+baseline_pss <- baseline[ , c("pss_1", "pss_2r","pss_3r", "pss_4")]
+alpha(baseline_pss)
+
+endpoint_pss <- endpoint[ , c("pss_1", "pss_2r","pss_3r", "pss_4")]
+alpha(endpoint_pss)
+
+morning_pos.mood <- ema_morning[ , c("mood_positive", "mood_happy", "mood_peaceful", "mood_well")]
+alpha(morning_pos.mood)
+
+evening_pos.mood <- ema_evening[ , c("mood_positive", "mood_happy", "mood_peaceful", "mood_well")]
+alpha(evening_pos.mood)
+
+morning_neg.mood <- ema_morning[ , c("mood_negative", "mood_sad", "mood_anxious", "mood_angry", "mood_lonely")]
+alpha(morning_neg.mood)
+
+evening_neg.mood <- ema_evening[ , c("mood_negative", "mood_sad", "mood_anxious", "mood_angry", "mood_lonely")]
+alpha(evening_neg.mood)
+
+morning_stress <- ema_morning[ , c("stress1", "stress2")]
+alpha(morning_stress)
+
+evening_stress <- ema_evening[ , c("stress1", "stress2")]
+alpha(evening_stress)
+
+############################
+#  SI 3 Table-             #
+# Demographic covariates   #
+############################
+
+summary(lm(pwb.post ~ age, df))
+summary(lm(cesd.post ~ age, df))
+summary(lm(stai.post ~ age, df))
+summary(lm(mdes_pos.post ~ age, df))
+summary(lm(mdes_neg.post ~ age, df))
+summary(lm(support.post ~ age, df))
+summary(lm(pss.post ~ age, df))
+
+summary(lm(pwb.post ~ gender, df))
+summary(lm(cesd.post ~ gender, df))
+summary(lm(stai.post ~ gender, df))
+summary(lm(mdes_pos.post ~ gender, df))
+summary(lm(mdes_neg.post ~ gender, df))
+summary(lm(support.post ~ gender, df))
+summary(lm(pss.post ~ gender, df))
+
+summary(lm(pwb.post ~ white, df))
+summary(lm(cesd.post ~ white, df))
+summary(lm(stai.post ~ white, df))
+summary(lm(mdes_pos.post ~ white, df))
+summary(lm(mdes_neg.post ~ white, df))
+summary(lm(support.post ~ white, df))
+summary(lm(pss.post ~ white, df))
+
+summary(lm(pwb.post ~ latin, df))
+summary(lm(cesd.post ~ latin, df))
+summary(lm(stai.post ~ latin, df))
+summary(lm(mdes_pos.post ~ latin, df))
+summary(lm(mdes_neg.post ~ latin, df))
+summary(lm(support.post ~ latin, df))
+summary(lm(pss.post ~ latin, df))
+
+summary(lm(pwb.post ~ asian, df))
+summary(lm(cesd.post ~ asian, df))
+summary(lm(stai.post ~ asian, df))
+summary(lm(mdes_pos.post ~ asian, df))
+summary(lm(mdes_neg.post ~ asian, df))
+summary(lm(support.post ~ asian, df))
+summary(lm(pss.post ~ asian, df))
+
+summary(lm(pwb.post ~ black, df))
+summary(lm(cesd.post ~ black, df))
+summary(lm(stai.post ~ black, df))
+summary(lm(mdes_pos.post ~ black, df))
+summary(lm(mdes_neg.post ~ black, df))
+summary(lm(support.post ~ black, df))
+summary(lm(pss.post ~ black, df))
+
+summary(lm(pwb.post ~ education.years, df))
+summary(lm(cesd.post ~ education.years, df))
+summary(lm(stai.post ~ education.years, df))
+summary(lm(mdes_pos.post ~ education.years, df))
+summary(lm(mdes_neg.post ~ education.years, df))
+summary(lm(support.post ~ education.years, df))
+summary(lm(pss.post ~ education.years, df))
+
+summary(lm(pwb.post ~ relationship, df))
+summary(lm(cesd.post ~ relationship, df))
+summary(lm(stai.post ~ relationship, df))
+summary(lm(mdes_pos.post ~ relationship, df))
+summary(lm(mdes_neg.post ~ relationship, df))
+summary(lm(support.post ~ relationship, df))
+summary(lm(pss.post ~ relationship, df))
+
+summary(lm(pwb.post ~ income, df))
+summary(lm(cesd.post ~ income, df))
+summary(lm(stai.post ~ income, df))
+summary(lm(mdes_pos.post ~ income, df))
+summary(lm(mdes_neg.post ~ income, df))
+summary(lm(support.post ~ income, df))
+summary(lm(pss.post ~ income, df))
+
+summary(lm(pwb.post ~ political, df))
+summary(lm(cesd.post ~ political, df))
+summary(lm(stai.post ~ political, df))
+summary(lm(mdes_pos.post ~ political, df))
+summary(lm(mdes_neg.post ~ political, df))
+summary(lm(support.post ~ political, df))
+summary(lm(pss.post ~ political, df))
+
+summary(lm(pwb.post ~ partyID, df))
+summary(lm(cesd.post ~ partyID, df))
+summary(lm(stai.post ~ partyID, df))
+summary(lm(mdes_pos.post ~ partyID, df))
+summary(lm(mdes_neg.post ~ partyID, df))
+summary(lm(support.post ~ partyID, df))
+summary(lm(pss.post ~ partyID, df))
+
+######################
+#   ANALYSIS PLAN-   #
+#   DATA EXCLUSION   #
+######################
+
+#endpoint attrition (i.e., did not complete endpoint survey)
+
+endpoint_attrition_by_condition <- df %>%
+  filter(is.na(pwb.post)) %>%
+  distinct(PROLIFIC_PID, condition) %>%
+  count(condition, name = "n_missing")
+
+endpoint_attrition_by_condition
+
+#per pre-registration
+##exclude participants who complete fewer than 4 training sessions/less than 10%
+
+df <- df %>%
+  rename(total_training = `Total number of training`)
+
+excluded_training_by_condition <- df %>%
+  filter(!is.na(total_training) & total_training <= 4) %>%
+  distinct(PROLIFIC_PID, condition) %>%
+  count(condition, name = "n_excluded")
+
+excluded_training_by_condition
+
+#create df_final for analysis with exclusions
+df_final <- df %>% filter(is.na(total_training) | total_training >= 5)
+
+#check numbers for Figure 1. Flow
+df_flow <- df %>% filter(is.na(total_training) | total_training >= 5)
+df_flow <- df_final %>% filter(!is.na(pwb.post))
+n_flow <- nrow(df_flow)
+n_flow
+df_flow %>%  count(condition)
+
+##################
+#    EMA DATA    #
+#    preparation #
+##################
+
+#add ema_type / bind EMA data into ema_long
+
+ema_morning <- ema_morning %>% mutate(ema_type = "morning")
+ema_evening <- ema_evening %>% mutate(ema_type = "evening")
+ema_long <- bind_rows(ema_morning, ema_evening)
+
+#drop condition from ema_long to prepare for merge
+ema_long_clean <- dplyr::select(ema_long, -condition)
+
+#merge df_final (with exclusion) with ema data
+df_long <- ema_long_clean %>%
+  left_join(df_final, by = "PROLIFIC_PID") # exclusion applied through left join by PROLIFIC_PID
+
+# check that numbers match between df_final (without EMA) and df_long (with EMA)
+df_final %>% count(condition)
+
+df_long %>%
+  distinct(PROLIFIC_PID, condition) %>%
+  count(condition)
+#92 NAs those excluded for completing >5 training sessions
+#analysis sample count differs from pre-to-post
+#included on analysis on the basis of training count, not endpoint survey completion
+
+#EMA completion rate
+ema_completion <- df_long %>%
+  group_by(PROLIFIC_PID) %>%
+  summarize(
+    n_completed = sum(`Completed Session` == 1, na.rm = TRUE),
+    n_possible = n(),   
+    completion_rate = n_completed / n_possible
+  )
+
+overall_completed <- sum(df_long$`Completed Session` == 1, na.rm = TRUE)
+overall_possible <- nrow(df_long)
+overall_rate <- overall_completed / overall_possible
+overall_rate
+
+ema_summary <- ema_completion %>%
+  summarize(
+    mean_rate = mean(completion_rate, na.rm = TRUE),
+    sd_rate = sd(completion_rate, na.rm = TRUE),
+    median_rate = median(completion_rate, na.rm = TRUE),
+    iqr_low = quantile(completion_rate, 0.25, na.rm = TRUE),
+    iqr_high = quantile(completion_rate, 0.75, na.rm = TRUE)
+  )
+
+print(ema_summary)
+print(overall_completed)
+print(overall_possible)
+
+# assess demographic covariates
+# Compute mean EMA values per participant
+df_means <- df_long %>%
+  group_by(PROLIFIC_PID) %>%
+  summarize(
+    sleep.quality = mean(sleep.quality, na.rm = TRUE),
+    sleep.duration_minutes = mean(sleep.duration_minutes, na.rm = TRUE),
+    sleep.efficiency_minutes = mean(sleep.efficiency_minutes, na.rm = TRUE),
+    stress = mean(c(morning.stress,   evening.stress),   na.rm = TRUE),
+    positive = mean(c(morning.positive, evening.positive), na.rm = TRUE),
+    negative = mean(c(morning.negative, evening.negative), na.rm = TRUE),
+    morning.stress = mean(morning.stress, na.rm = TRUE),
+    morning.positive = mean(morning.positive, na.rm = TRUE),
+    morning.negative = mean(morning.negative, na.rm = TRUE),
+    evening.stress = mean(evening.stress, na.rm = TRUE),
+    evening.positive = mean(evening.positive, na.rm = TRUE),
+    evening.negative = mean(evening.negative, na.rm = TRUE)) %>%
+  left_join(df_final %>% dplyr::select(PROLIFIC_PID, age, gender, white, black, native, asian, pacific, latin,
+                                       education.years, relationship, income, political, partyID),
+            by = "PROLIFIC_PID")
+
+#####################
+#  SI 4 + 5 Tables  #
+#####################
+
+#association tests for continuous variables
+cor.test(df_means$age, df_means$sleep.quality)
+cor.test(df_means$age, df_means$sleep.duration_minutes)
+cor.test(df_means$age, df_means$sleep.efficiency_minutes)
+cor.test(df_means$age, df_means$positive)
+cor.test(df_means$age, df_means$negative)
+cor.test(df_means$age, df_means$stress)
+
+cor.test(df_means$education.years, df_means$sleep.quality)
+cor.test(df_means$education.years, df_means$sleep.duration_minutes)
+cor.test(df_means$education.years, df_means$sleep.efficiency_minutes)
+cor.test(df_means$education.years, df_means$positive)
+cor.test(df_means$education.years, df_means$negative)
+cor.test(df_means$education.years, df_means$stress)
+
+cor.test(df_means$political, df_means$sleep.quality)
+cor.test(df_means$political, df_means$sleep.duration_minutes)
+cor.test(df_means$political, df_means$sleep.efficiency_minutes)
+cor.test(df_means$political, df_means$positive)
+cor.test(df_means$political, df_means$negative)
+cor.test(df_means$political, df_means$stress)
+
+#association tests for categorical variables
+summary(aov(sleep.quality ~ gender, data = df_means))
+summary(aov(sleep.duration_minutes ~ gender, data = df_means))
+summary(aov(sleep.efficiency_minutes ~ gender, data = df_means))
+summary(aov(positive ~ gender, data = df_means))
+summary(aov(negative ~ gender, data = df_means))
+summary(aov(stress ~ gender, data = df_means))
+
+t.test(sleep.quality ~ white, data = df_means)
+t.test(sleep.duration_minutes ~ white, data = df_means)
+t.test(sleep.efficiency_minutes ~ white, data = df_means)
+t.test(positive ~ white, data = df_means)
+t.test(negative ~ white, data = df_means)
+t.test(stress ~ white, data = df_means)
+
+t.test(sleep.quality ~ latin, data = df_means)
+t.test(sleep.duration_minutes ~ latin, data = df_means)
+t.test(sleep.efficiency_minutes ~ latin, data = df_means)
+t.test(positive ~ latin, data = df_means)
+t.test(negative ~ latin, data = df_means)
+t.test(stress ~ latin, data = df_means)
+
+t.test(sleep.quality ~ asian, data = df_means)
+t.test(sleep.duration_minutes ~ asian, data = df_means)
+t.test(sleep.efficiency_minutes ~ asian, data = df_means)
+t.test(positive ~ asian, data = df_means)
+t.test(negative ~ asian, data = df_means)
+t.test(stress ~ asian, data = df_means)
+
+t.test(sleep.quality ~ black, data = df_means)
+t.test(sleep.duration_minutes ~ black, data = df_means)
+t.test(sleep.efficiency_minutes ~ black, data = df_means)
+t.test(positive ~ black, data = df_means)
+t.test(negative ~ black, data = df_means)
+t.test(stress ~ black, data = df_means)
+
+summary(aov(sleep.quality ~ relationship, data = df_means))
+summary(aov(sleep.duration_minutes ~ relationship, data = df_means))
+summary(aov(sleep.efficiency_minutes ~ relationship, data = df_means))
+summary(aov(positive ~ relationship, data = df_means))
+summary(aov(negative ~ relationship, data = df_means))
+summary(aov(stress ~ relationship, data = df_means))
+
+summary(aov(sleep.quality ~ income, data = df_means))
+summary(aov(sleep.duration_minutes ~ income, data = df_means))
+summary(aov(sleep.efficiency_minutes ~ income, data = df_means))
+summary(aov(positive ~ income, data = df_means))
+summary(aov(negative ~ income, data = df_means))
+summary(aov(stress ~ income, data = df_means))
+
+summary(aov(sleep.quality ~ partyID, data = df_means))
+summary(aov(sleep.duration_minutes ~ partyID, data = df_means))
+summary(aov(sleep.efficiency_minutes ~ partyID, data = df_means))
+summary(aov(positive ~ partyID, data = df_means))
+summary(aov(negative ~ partyID, data = df_means))
+summary(aov(stress ~ partyID, data = df_means))
+
+##########################
+# preparing "well" data  #
+##########################
+
+#well-data: no-intervention group
+df_well_no <- bind_rows(training_no1, training_no2)
+df_well_no <- df_well_no %>%
+  rename(
+    condition = 'PackageID',
+    Time = 'End Time',
+    Well = 'How do you feel right now?'
+  ) %>%
+  dplyr::select(PROLIFIC_PID, condition, Time, Well)
+
+df_well_no <- df_well_no %>%
+  mutate(condition = recode(condition, "D100" = "No-Intervention"))
+
+#well-data: intervention + active control groups
+df_well_rest <- bind_rows(training_other, training_self, training_control)
+df_well_rest <- df_well_rest %>%
+  rename(
+    condition = 'Condition',
+  ) %>%
+  dplyr::select(PROLIFIC_PID, condition, Time, Well)
+df_well_rest <- df_well_rest %>%
+  mutate(condition = recode(condition,
+                            "Other" = "Other Compassion",
+                            "Self" = "Self Compassion",
+                            "Control" = "Active Control"))
+
+#Well data: all
+df_well <- bind_rows (df_well_no, df_well_rest)
+df_well$condition <- as.factor(df_well$condition)
+df_well$condition <- relevel(df_well$condition, ref='No-Intervention')
+
+# apply exclusions: through left join by PROLIFIC_PID
+df_well_final <- dplyr::select(df_well, -condition)
+
+df_well_final <- df_well_final %>%
+  left_join(df_final, by = "PROLIFIC_PID")
+
+# check that numbers match between df_final and df_well_final
+df_final %>% count(condition)
+
+df_well_final %>%
+  distinct(PROLIFIC_PID, condition) %>%
+  count(condition)
+
+#####################
+#  SI 4 + 5 Tables  #
+#####################
+
+df_well_mean <- df_well_final %>%
+  group_by(PROLIFIC_PID) %>%
+  summarize(Well = mean(Well, na.rm = TRUE)) %>%
+  left_join(df_final %>% dplyr::select(PROLIFIC_PID, age, gender, white, black, native, asian, pacific, latin,
+                                       education.years, relationship, income, political, partyID),
+            by = "PROLIFIC_PID")
+
+cor.test(df_well_mean$age, df_well_mean$Well)
+cor.test(df_well_mean$education.years, df_well_mean$Well)
+cor.test(df_well_mean$political, df_well_mean$Well)
+
+summary(aov(Well ~ gender, data = df_well_mean))
+t.test(Well ~ white, data = df_well_mean)
+t.test(Well ~ latin, data = df_well_mean)
+t.test(Well ~ asian, data = df_well_mean)
+t.test(Well ~ black, data = df_well_mean)
+summary(aov(Well ~ relationship, data = df_well_mean))
+summary(aov(Well ~ income, data = df_well_mean))
+summary(aov(Well ~ partyID, data = df_well_mean))
+
+
+# create daily dosage variable
+df_well_final <- df_well_final %>% mutate(date = as.Date(Time))
+
+daily_dosage <- df_well_final %>%
+  group_by(PROLIFIC_PID, condition, date) %>%
+  summarize(daily_dosage = if_else(first(condition) == "No-Intervention", 0L, n()), # count post-session events that day; no-intervention dosage set as 0
+            .groups = "drop")
+
+df_well_final <- df_well_final %>%
+  left_join(daily_dosage, by = c("PROLIFIC_PID", "condition", "date"))
+
+
+############
+# Analysis #
+############
+
+####################
+# immediate effect #
+####################
+
+model_well_max <- lmer(Well ~ condition * daily_dosage + 
+                         age + education.years + political + gender + relationship + income + partyID +
+                         (1 + daily_dosage | PROLIFIC_PID),
+                       data = df_well_final)
+
+summary(model_well_max)
+
+confint(model_well_max, method = "Wald")
+
+####################
+#    pre-to-post   #
+####################
+
+#no condition effect
+summary(lm(pwb.post ~ condition + pwb.pre + age + black + education.years,  df_final))
+summary(lm(cesd.post ~ condition + cesd.pre + age + gender + education.years + income + political + partyID,  df_final))
+summary(lm(stai.post ~ condition + stai.pre + age + education.years + political + partyID,  df_final))
+summary(lm(mdes_pos.post ~ condition + mdes_pos.pre + age +  education.years + relationship + political + partyID,  df_final))
+summary(lm(mdes_neg.post ~ condition + mdes_neg.pre + age,  df_final))
+summary(lm(support.post ~ condition + support.pre + age + white + asian + education.years + income,  df_final))
+summary(lm(pss.post ~ condition + pss.pre + age + gender + education.years + income + political + partyID,  df_final))
+
+#within group
+
+# T-tests by condition
+ttest_pwb <- df_final %>%
+  group_by(condition) %>%
+  summarize(
+    mean_pre = mean(pwb.pre, na.rm = TRUE),
+    mean_post = mean(pwb.post, na.rm = TRUE),
+    t_test = list(t.test(pwb.post, pwb.pre, paired = TRUE)),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    t_stat = sapply(t_test, function(x) x$statistic),
+    p_value = sapply(t_test, function(x) x$p.value),
+    ci_lower = sapply(t_test, function(x) x$conf.int[1]),
+    ci_upper = sapply(t_test, function(x) x$conf.int[2])
+  ) %>%
+  dplyr::select(condition, t_stat, p_value, mean_pre, mean_post, ci_lower, ci_upper)%>%
+  mutate(
+    across(
+      c(t_stat, mean_pre, mean_post, ci_lower, ci_upper),
+      ~ formatC(.x, format = "f", digits = 3)
+    ),
+    p_value = ifelse(
+      p_value < .001,
+      "<.001",
+      formatC(p_value, format = "f", digits = 3)
+    )
+  )
+
+ttest_pwb
+
+ttest_cesd <- df_final %>%
+  group_by(condition) %>%
+  summarize(
+    mean_pre = mean(cesd.pre, na.rm = TRUE),
+    mean_post = mean(cesd.post, na.rm = TRUE),
+    t_test = list(t.test(cesd.post, cesd.pre, paired = TRUE)),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    t_stat = sapply(t_test, function(x) x$statistic),
+    p_value = sapply(t_test, function(x) x$p.value),
+    ci_lower = sapply(t_test, function(x) x$conf.int[1]),
+    ci_upper = sapply(t_test, function(x) x$conf.int[2])
+  ) %>%
+  dplyr::select(condition, t_stat, p_value, mean_pre, mean_post, ci_lower, ci_upper)%>%
+  mutate(
+    across(
+      c(t_stat, mean_pre, mean_post, ci_lower, ci_upper),
+      ~ formatC(.x, format = "f", digits = 3)
+    ),
+    p_value = ifelse(
+      p_value < .001,
+      "<.001",
+      formatC(p_value, format = "f", digits = 3)
+    )
+  )
+
+ttest_cesd
+
+ttest_stai <- df_final %>%
+  group_by(condition) %>%
+  summarize(
+    mean_pre = mean(stai.pre, na.rm = TRUE),
+    mean_post = mean(stai.post, na.rm = TRUE),
+    t_test = list(t.test(stai.post, stai.pre, paired = TRUE)),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    t_stat = sapply(t_test, function(x) x$statistic),
+    p_value = sapply(t_test, function(x) x$p.value),
+    ci_lower = sapply(t_test, function(x) x$conf.int[1]),
+    ci_upper = sapply(t_test, function(x) x$conf.int[2])
+  ) %>%
+  dplyr::select(condition, t_stat, p_value, mean_pre, mean_post, ci_lower, ci_upper)%>%
+  mutate(
+    across(
+      c(t_stat, mean_pre, mean_post, ci_lower, ci_upper),
+      ~ formatC(.x, format = "f", digits = 3)
+    ),
+    p_value = ifelse(
+      p_value < .001,
+      "<.001",
+      formatC(p_value, format = "f", digits = 3)
+    )
+  )
+
+ttest_stai
+
+
+ttest_mdes_pos <- df_final %>%
+  group_by(condition) %>%
+  summarize(
+    mean_pre = mean(mdes_pos.pre, na.rm = TRUE),
+    mean_post = mean(mdes_pos.post, na.rm = TRUE),
+    t_test = list(t.test(mdes_pos.post, mdes_pos.pre, paired = TRUE)),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    t_stat = sapply(t_test, function(x) x$statistic),
+    p_value = sapply(t_test, function(x) x$p.value),
+    ci_lower = sapply(t_test, function(x) x$conf.int[1]),
+    ci_upper = sapply(t_test, function(x) x$conf.int[2])
+  ) %>%
+  dplyr::select(condition, t_stat, p_value, mean_pre, mean_post, ci_lower, ci_upper)%>%
+  mutate(
+    across(
+      c(t_stat, mean_pre, mean_post, ci_lower, ci_upper),
+      ~ formatC(.x, format = "f", digits = 3)
+    ),
+    p_value = ifelse(
+      p_value < .001,
+      "<.001",
+      formatC(p_value, format = "f", digits = 3)
+    )
+  )
+
+
+ttest_mdes_pos
+
+ttest_mdes_neg <- df_final %>%
+  group_by(condition) %>%
+  summarize(
+    mean_pre = mean(mdes_neg.pre, na.rm = TRUE),
+    mean_post = mean(mdes_neg.post, na.rm = TRUE),
+    t_test = list(t.test(mdes_neg.post, mdes_neg.pre, paired = TRUE)),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    t_stat = sapply(t_test, function(x) x$statistic),
+    p_value = sapply(t_test, function(x) x$p.value),
+    ci_lower = sapply(t_test, function(x) x$conf.int[1]),
+    ci_upper = sapply(t_test, function(x) x$conf.int[2])
+  ) %>%
+  dplyr::select(condition, t_stat, p_value, mean_pre, mean_post, ci_lower, ci_upper)%>%
+  mutate(
+    across(
+      c(t_stat, mean_pre, mean_post, ci_lower, ci_upper),
+      ~ formatC(.x, format = "f", digits = 3)
+    ),
+    p_value = ifelse(
+      p_value < .001,
+      "<.001",
+      formatC(p_value, format = "f", digits = 3)
+    )
+  )
+
+ttest_mdes_neg
+
+ttest_support <- df_final %>%
+  group_by(condition) %>%
+  summarize(
+    mean_pre = mean(support.pre, na.rm = TRUE),
+    mean_post = mean(support.post, na.rm = TRUE),
+    t_test = list(t.test(support.post, support.pre, paired = TRUE)),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    t_stat = sapply(t_test, function(x) x$statistic),
+    p_value = sapply(t_test, function(x) x$p.value),
+    ci_lower = sapply(t_test, function(x) x$conf.int[1]),
+    ci_upper = sapply(t_test, function(x) x$conf.int[2])
+  ) %>%
+  dplyr::select(condition, t_stat, p_value, mean_pre, mean_post, ci_lower, ci_upper)%>%
+  mutate(
+    across(
+      c(t_stat, mean_pre, mean_post, ci_lower, ci_upper),
+      ~ formatC(.x, format = "f", digits = 3)
+    ),
+    p_value = ifelse(
+      p_value < .001,
+      "<.001",
+      formatC(p_value, format = "f", digits = 3)
+    )
+  )
+
+ttest_support
+
+ttest_pss <- df_final %>%
+  group_by(condition) %>%
+  summarize(
+    mean_pre = mean(pss.pre, na.rm = TRUE),
+    mean_post = mean(pss.post, na.rm = TRUE),
+    t_test = list(t.test(pss.post, pss.pre, paired = TRUE)),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    t_stat = sapply(t_test, function(x) x$statistic),
+    p_value = sapply(t_test, function(x) x$p.value),
+    ci_lower = sapply(t_test, function(x) x$conf.int[1]),
+    ci_upper = sapply(t_test, function(x) x$conf.int[2])
+  ) %>%
+  dplyr::select(condition, t_stat, p_value, mean_pre, mean_post, ci_lower, ci_upper)%>%
+  mutate(
+    across(
+      c(t_stat, mean_pre, mean_post, ci_lower, ci_upper),
+      ~ formatC(.x, format = "f", digits = 3)
+    ),
+    p_value = ifelse(
+      p_value < .001,
+      "<.001",
+      formatC(p_value, format = "f", digits = 3)
+    )
+  )
+
+ttest_pss
+
+############
+#    EMA   #
+############
+
+#####sleep
+
+#sleep quality
+model_sleep_quality <- lmer(sleep.quality ~ day * condition + 
+                              age + education.years + political + gender + relationship + income + partyID +
+                              (1 + day | PROLIFIC_PID), 
+                            data = df_long)
+#fail to converge
+
+model_simple_sleep_quality <- lmer(sleep.quality ~ day * condition + 
+                                     age + education.years + political + gender + relationship + income + partyID +
+                                     (1 | PROLIFIC_PID), 
+                                   data = df_long)
+summary(model_simple_sleep_quality)
+confint(model_simple_sleep_quality, method = "Wald")
+
+#sleep duration
+model_sleep_duration <- lmer(sleep.duration_minutes ~ day * condition + 
+                               education.years + asian + black + partyID +
+                               (1 + day | PROLIFIC_PID), 
+                             data = df_long)
+
+#fail to converge
+
+model_simple_sleep_duration <- lmer(sleep.duration_minutes ~ day * condition + 
+                                      education.years + asian + black + partyID +
+                                      (1 | PROLIFIC_PID), 
+                                    data = df_long)
+
+summary(model_simple_sleep_duration)
+confint(model_simple_sleep_duration, method = "Wald")
+
+#sleep efficiency
+
+model_sleep_efficiency <- lmer(sleep.efficiency_minutes ~ day * condition + 
+                                 education.years + income + partyID + 
+                                 (1 + day | PROLIFIC_PID), 
+                               data = df_long)
+
+#fail to converge
+
+model_simple_sleep_efficiency <- lmer(sleep.efficiency_minutes ~ day * condition + 
+                                        education.years + income + partyID + 
+                                        (1 | PROLIFIC_PID), 
+                                      data = df_long)
+
+summary(model_simple_sleep_efficiency)
+confint(model_simple_sleep_efficiency, method = "Wald")
+
+#####positive mood
+
+# Combine morning and evening positive mood into long format
+df_positive <- df_long %>%
+  dplyr::select(PROLIFIC_PID, day, condition, morning.positive, evening.positive,
+                age, education.years, political, gender, relationship, income, partyID) %>%
+  pivot_longer(cols = c(morning.positive, evening.positive),
+               names_to = "time_of_day",
+               values_to = "positive_mood") %>%
+  mutate(time_of_day = factor(ifelse(time_of_day == "morning.positive", "morning", "evening")))
+
+#Model A: Day × Condition (no time of day)
+model_a <- lmer(positive_mood ~ day * condition + 
+                  age + education.years + political + gender + relationship + income + partyID +
+                  (1 | PROLIFIC_PID),
+                data = df_positive)
+
+#Model B: Time of day x Condition (no day)
+model_b <- lmer(positive_mood ~ time_of_day * condition +
+                  age + education.years + political + gender + relationship + income + partyID +
+                  gender + relationship + partyID +
+                  (1 | PROLIFIC_PID),
+                data = df_positive)
+
+#Model C: Day × Condition + Time of Day
+model_c <- lmer(positive_mood ~ day * condition + time_of_day + 
+                  age + education.years + political + gender + relationship + income + partyID +
+                  (1 | PROLIFIC_PID),
+                data = df_positive)
+
+#AIC comparison
+aic_pos <- AIC(model_a, model_b, model_c) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("model") %>%
+  dplyr::mutate(outcome = "positive_mood")
+
+aic_pos
+
+summary(model_c)
+confint(model_c, method = "Wald")
+
+###### negative mood
+
+# Combine morning and evening negative mood into long format
+df_negative <- df_long %>%
+  dplyr::select(PROLIFIC_PID, day, condition, morning.negative, evening.negative,
+                age, political, relationship, income) %>%
+  pivot_longer(cols = c(morning.negative, evening.negative),
+               names_to = "time_of_day",
+               values_to = "negative_mood") %>%
+  mutate(time_of_day = factor(ifelse(time_of_day == "morning.negative", "morning", "evening")))
+
+#Model A: Day × Condition (no time of day)
+
+model_neg_a <- lmer(negative_mood ~ day * condition + 
+                      age + political + relationship + income +
+                      (1 | PROLIFIC_PID),
+                    data = df_negative)
+
+#Model B: Time of day x Condition (no day)
+model_neg_b <- lmer(negative_mood ~ time_of_day * condition +
+                      age + political + relationship + income +
+                      (1 + day | PROLIFIC_PID),
+                    data = df_negative)
+
+
+#Model C: Day × Condition + Time of Day
+model_neg_c <- lmer(negative_mood ~ day * condition + time_of_day + 
+                      age + political + relationship + income + 
+                      (1 | PROLIFIC_PID),
+                    data = df_negative)
+
+# AIC comparison
+aic_neg <- AIC(model_neg_a, model_neg_b, model_neg_c) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("model") %>%
+  dplyr::mutate(outcome = "negative_mood")
+aic_neg
+
+summary(model_neg_a)
+confint(model_neg_a, method = "Wald")
+
+###### stress
+
+df_stress <- df_long %>%
+  dplyr::select(PROLIFIC_PID, day, condition, morning.stress, evening.stress,
+                age, education.years, political, gender, relationship, income) %>%
+  pivot_longer(cols = c(morning.stress, evening.stress),
+               names_to = "time_of_day",
+               values_to = "stress") %>%
+  mutate(time_of_day = factor(ifelse(time_of_day == "morning.stress", "morning", "evening")))
+
+#Model A: Day × Condition (no time of day)
+model_stress_a <- lmer(stress ~ day * condition + 
+                         age + education.years + political + gender + relationship + income +
+                         (1 | PROLIFIC_PID),
+                       data = df_stress)
+
+#Model B: Time of day x Condition (no day)
+model_stress_b <- lmer(stress ~ time_of_day * condition + 
+                         age + education.years + political + gender + relationship + income +
+                         (1 | PROLIFIC_PID),
+                       data = df_stress)
+
+#Model C: Day × Condition + Time of Day
+model_stress_c <- lmer(stress ~ day * condition + time_of_day + 
+                         age + education.years + political + gender + relationship + income +
+                         (1 + day | PROLIFIC_PID),
+                       data = df_stress)
+
+aic_stress <- AIC(model_stress_a, model_stress_b, model_stress_c) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("model") %>%
+  dplyr::mutate(outcome = "stress")
+aic_stress
+
+summary(model_stress_c)
+confint(model_stress_c, method = "Wald")
+
+##########################
+#      dosage effect     #
+##########################
+
+df_dosage <- df_final %>% filter(condition %in% c("Other Compassion", "Self Compassion"))
+
+training_summary <- df_dosage %>%
+  summarize(
+    median_training = median(total_training, na.rm = TRUE),
+    iqr_low = quantile(total_training, 0.25, na.rm = TRUE),
+    iqr_high = quantile(total_training, 0.75, na.rm = TRUE)
+  )
+
+training_summary
+
+df_dosage$pwb.change <- df_dosage$pwb.post - df_dosage$pwb.pre
+df_dosage$cesd.change <- df_dosage$cesd.post - df_dosage$cesd.pre
+df_dosage$stai.change <- df_dosage$stai.post - df_dosage$stai.pre
+df_dosage$mdes_pos.change <- df_dosage$mdes_pos.post - df_dosage$mdes_pos.pre
+df_dosage$mdes_neg.change <- df_dosage$mdes_neg.post - df_dosage$mdes_neg.pre
+df_dosage$support.change <- df_dosage$support.post - df_dosage$support.pre
+df_dosage$pss.change <- df_dosage$pss.post - df_dosage$pss.pre
+
+
+library(segmented)
+
+psi_start <- median(df_dosage$total_training, na.rm = TRUE)
+
+# Step 1: Fit a basic linear model
+model_pwb <- lm(pwb.change ~ total_training, data = df_dosage)
+summary(model_pwb)
+segmented_model_pwb <- segmented(model_pwb, seg.Z = ~ total_training, psi = psi_start)
+summary(segmented_model_pwb)
+
+# Step 2: Apply segmented regression
+seg_model_pwb <- segmented(model_pwb, seg.Z = ~total_training, psi = psi_start)
+
+# Step 3: Visualize
+plot(df_dosage$total_training, df_dosage$pwb.change, 
+     xlab = "Total training completed", ylab = "Pre-to-post changes in Well-Being",
+     pch = 19, cex = 1,
+     col = "black")
+
+plot(seg_model_pwb, add = TRUE, col = "blue", lwd = 2.7)
+abline(v = seg_model_pwb$psi["psi1.total_training", "Est."], col = "#EB5E29", lty = 2, lwd = 3)
+
+#mdes neg
+model_mdes_neg <- lm(mdes_neg.change ~ total_training, data = df_dosage)
+summary(model_mdes_neg)
+segmented_model_mdes_neg <- segmented(model_mdes_neg, seg.Z = ~ total_training, psi = psi_start)
+summary(segmented_model_mdes_neg)
+
+seg_model_mdes_neg <- segmented(model_mdes_neg, seg.Z = ~total_training, psi = psi_start)
+plot(df_dosage$total_training, df_dosage$mdes_neg.change, 
+     xlab = "Total training completed", ylab = "Pre-to-post changes in Negative Affect",
+     ylim = c(-2, 2.5),
+     pch = 19, cex = 1,
+     col = "black")
+
+plot(seg_model_mdes_neg, add = TRUE, col = "blue", lwd = 2.7)
+abline(v = seg_model_mdes_neg$psi["psi1.total_training", "Est."], col = "#EB5E29", lty = 2, lwd = 3)
+
+# Figure 2
+# Set up 1 row, 2 columns
+par(mfrow = c(1, 2),     # 1 row, 2 panels
+    mar = c(4, 4, 3, 1)) # margins: bottom, left, top, right
+
+# ---- Panel A: Well-being ----
+plot(df_dosage$total_training, df_dosage$pwb.change, 
+     xlab = "Total training completed",
+     ylab = "Pre-to-post changes in Well-Being",
+     pch = 19, cex = 1,
+     col = "black")
+
+plot(seg_model_pwb, add = TRUE, col = "blue", lwd = 2.7)
+abline(v = seg_model_pwb$psi["psi1.total_training", "Est."],
+       col = "#EB5E29", lty = 2, lwd = 3)
+
+title("A. Well-Being")
+
+# ---- Panel B: Negative affect ----
+plot(df_dosage$total_training, df_dosage$mdes_neg.change, 
+     xlab = "Total training completed",
+     ylab = "Pre-to-post changes in Negative Affect",
+     ylim = c(-2, 2.5),
+     pch = 19, cex = 1,
+     col = "black")
+
+plot(seg_model_mdes_neg, add = TRUE, col = "blue", lwd = 2.7)
+abline(v = seg_model_mdes_neg$psi["psi1.total_training", "Est."],
+       col = "#EB5E29", lty = 2, lwd = 3)
+
+title("B. Negative Affect")
+
+# Reset layout (important)
+par(mfrow = c(1, 1))
+
+#CESD
+
+model_cesd <- lm(cesd.change ~ total_training, data = df_dosage)
+summary(model_cesd)
+segmented_model_cesd <- segmented(model_cesd, seg.Z = ~ total_training, psi = psi_start)
+summary(segmented_model_cesd)
+
+seg_model_cesd <- segmented(model_cesd, seg.Z = ~total_training, psi = psi_start)
+plot(df_dosage$total_training, df_dosage$cesd.change, 
+     xlab = "", ylab = "",
+     ylim = c(-1.5, 1.5),
+     pch = 19, cex = 1,
+     col = "black")
+
+plot(seg_model_cesd, add = TRUE, col = "blue", lwd = 2.7)
+abline(v = seg_model_cesd$psi["psi1.total_training", "Est."], col = "#EB5E29", lty = 2, lwd = 3)
+
+#STAI
+model_stai <- lm(stai.change ~ total_training, data = df_dosage)
+summary(model_stai)
+segmented_model_stai <- segmented(model_stai, seg.Z = ~ total_training, psi = psi_start)
+summary(segmented_model_stai)
+
+seg_model_stai <- segmented(model_stai, seg.Z = ~total_training, psi = psi_start)
+plot(df_dosage$total_training, df_dosage$stai.change, 
+     xlab = "", ylab = "",
+     ylim = c(-1.5, 1.5),
+     pch = 19, cex = 1,
+     col = "black")
+
+plot(seg_model_stai, add = TRUE, col = "blue", lwd = 2.7)
+abline(v = seg_model_stai$psi["psi1.total_training", "Est."], col = "#EB5E29", lty = 2, lwd = 3)
+
+#mdes pos
+model_mdes_pos <- lm(mdes_pos.change ~ total_training, data = df_dosage)
+summary(model_mdes_pos)
+segmented_model_mdes_pos <- segmented(model_mdes_pos, seg.Z = ~ total_training, psi = psi_start)
+summary(segmented_model_mdes_pos)
+
+seg_model_mdes_pos <- segmented(model_mdes_pos, seg.Z = ~total_training, psi = psi_start)
+plot(df_dosage$total_training, df_dosage$mdes_pos.change, 
+     xlab = "", ylab = "",
+     ylim = c(-2, 2.5),
+     pch = 19, cex = 1,
+     col = "black")
+
+plot(seg_model_mdes_pos, add = TRUE, col = "blue", lwd = 2.7)
+abline(v = seg_model_mdes_pos$psi["psi1.total_training", "Est."], col = "#EB5E29", lty = 2, lwd = 3)
+
+#support
+model_support <- lm(support.change ~ total_training, data = df_dosage)
+summary(model_support)
+segmented_model_support <- segmented(model_support, seg.Z = ~ total_training, psi = psi_start)
+summary(segmented_model_support)
+
+seg_model_support <- segmented(model_support, seg.Z = ~total_training, psi = psi_start)
+plot(df_dosage$total_training, df_dosage$support.change, 
+     xlab = "", ylab = "",
+     ylim = c(-1.5, 2),
+     pch = 19, cex = 1,
+     col = "black")
+
+plot(seg_model_support, add = TRUE, col = "blue", lwd = 2.7)
+abline(v = seg_model_support$psi["psi1.total_training", "Est."], col = "#EB5E29", lty = 2, lwd = 3)
+
+#pss
+model_pss <- lm(pss.change ~ total_training, data = df_dosage)
+summary(model_pss)
+segmented_model_pss <- segmented(model_pss, seg.Z = ~ total_training, psi = psi_start)
+summary(segmented_model_pss)
+
+seg_model_pss <- segmented(model_pss, seg.Z = ~total_training, psi = psi_start)
+plot(df_dosage$total_training, df_dosage$pss.change, 
+     xlab = "", ylab = "",
+     ylim = c(-1.5, 2),
+     pch = 19, cex = 1,
+     col = "black")
+
+plot(seg_model_pss, add = TRUE, col = "blue", lwd = 2.7)
+abline(v = seg_model_pss$psi["psi1.total_training", "Est."], col = "#EB5E29", lty = 2, lwd = 3)
+
+#SI Figure
+
+# --- 5 stacked panels ---
+par(mfrow = c(3, 2),
+    mar = c(2.2, 4.2, 2.2, 1.0),  # bottom, left, top, right
+    oma = c(3.5, 0, 0, 0))        # outer margin for shared x label
+
+# Helper to avoid repeating code
+plot_seg <- function(x, y, seg_model, ylim, panel_title, ylab_txt) {
+  plot(x, y,
+       xlab = "", ylab = ylab_txt,
+       ylim = ylim,
+       pch = 19, cex = 1,
+       col = "black")
+  plot(seg_model, add = TRUE, col = "blue", lwd = 2.7)
+  abline(v = seg_model$psi["psi1.total_training", "Est."],
+         col = "#EB5E29", lty = 2, lwd = 3)
+  title(panel_title, adj = 0.5)  
+}
+
+# A. Depression (CESD)
+plot_seg(df_dosage$total_training, df_dosage$cesd.change,
+         seg_model_cesd, ylim = c(-1.5, 1.5),
+         panel_title = "A. Depression", ylab_txt = "Pre-to-post change")
+
+# B. Anxiety (STAI)
+plot_seg(df_dosage$total_training, df_dosage$stai.change,
+         seg_model_stai, ylim = c(-1.5, 1.5),
+         panel_title = "B. Anxiety", ylab_txt = "Pre-to-post change")
+
+# C. Positive Affect (MDES-Pos)
+plot_seg(df_dosage$total_training, df_dosage$mdes_pos.change,
+         seg_model_mdes_pos, ylim = c(-2, 2.5),
+         panel_title = "C. Positive Affect", ylab_txt = "Pre-to-post change")
+
+# D. Social Support
+plot_seg(df_dosage$total_training, df_dosage$support.change,
+         seg_model_support, ylim = c(-1.5, 2),
+         panel_title = "D. Social Support", ylab_txt = "Pre-to-post change")
+
+# E. Stress (PSS)  + show x-axis labels only on bottom plot
+plot(df_dosage$total_training, df_dosage$pss.change,
+     xlab = "", ylab = "Pre-to-post change",
+     ylim = c(-1.5, 2),
+     pch = 19, cex = 1,
+     col = "black")
+plot(seg_model_pss, add = TRUE, col = "blue", lwd = 2.7)
+abline(v = seg_model_pss$psi["psi1.total_training", "Est."],
+       col = "#EB5E29", lty = 2, lwd = 3)
+title("E. Stress", adj = 0.5)
+
+# Shared x-axis label (bottom, for the whole figure)
+mtext("Total training completed", side = 1, outer = TRUE, line = 1.5)
+
+# Reset
+par(mfrow = c(1, 1))
+
+
